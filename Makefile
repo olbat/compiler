@@ -6,7 +6,7 @@ SNAME= compiler
 LYSRC= y.tab.c lex.yy.c
 LSRC= compiler.l
 YSRC= compiler.y
-SRC= debug.c 
+SRC= debug.c generator.c
 OBJ= $(SRC:.c=.o)
 LYOBJ= $(LYSRC:.c=.o)
 

@@ -1,11 +1,6 @@
 let
-        var i := 0
-        function fibo( a : int) 
-		: 
-		int
-
-		= 
-
+        var i : int := 0
+        function fibo( a : int) : int = 
 		if a = 0 
 		then 0 
 		else if a = 1 
@@ -17,5 +12,5 @@ in
                 (printi(fibo(i));
                 prints("\t");
                 i := i+1)
-        end
 end
+

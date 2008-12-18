@@ -6,6 +6,8 @@
 void print_exp(struct at_exp *exp)
 {
 	printf("exp(");
+	if (!exp)
+		return;
 	switch (exp->e)
 	{
 	case AT_ENUM_EXP_LET:
@@ -20,6 +22,8 @@ void print_exp(struct at_exp *exp)
 void print_let(struct at_let *let)
 {
 	printf("let(");
+	if (!let)
+		return;
 	print_decs(let->decs);
 	/* >>> TODO: prout */
 	printf(")");	
@@ -28,6 +32,8 @@ void print_let(struct at_let *let)
 void print_decs(struct at_decs *decs)
 {
 	printf("decs(");
+	if (!decs)
+		return;
 	print_dec(decs->dec);
 	/* >>> TODO: prout */	
 	printf(")");	
@@ -36,6 +42,8 @@ void print_decs(struct at_decs *decs)
 void print_dec(struct at_dec *dec)
 {
 	printf("dec(");
+	if (!dec)
+		return;
 	switch(dec->e)
 	{
 	case AT_ENUM_EXP_LET:
@@ -50,7 +58,9 @@ void print_dec(struct at_dec *dec)
 void print_vardec(struct at_vardec *vardec)
 {
 	printf("vardec(");
-	printf("idname:%s",vardec->idname);	
+	if (!vardec)
+		return;
+	printf("idname:%s ",(vardec->idname ? vardec->idname : "{none}"));
 	switch(vardec->e)
 	{
 	case AT_ENUM_VARDEC_TYPE:
