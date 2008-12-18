@@ -12,12 +12,36 @@
 	_s; \
 })
 
-enum at_typeid
+
+/* exp node*/
+
+enum at_enum_exp
 {
-	AT_TID_INT,
-	AT_TID_REAL,
-	AT_TID_STRING
+	AT_ENUM_EXP_LET
+	/* >>> TODO: prout */
 };
+
+struct at_exp
+{
+	enum at_enum_exp e;
+	union
+	{
+		struct at_let *let;
+		/* >>> TODO: prout */
+	} u;
+};
+
+
+/* let node*/
+
+struct at_let
+{
+	struct at_decs *decs;
+	/* >>> TODO: prout */
+};
+
+
+/* lvalue node*/
 
 enum at_enum_lvalue
 {
@@ -37,23 +61,16 @@ struct at_lvalue
 	char *idname;
 };
 
-enum at_enum_vardec
+
+/* decs node*/
+
+struct at_decs
 {
-	AT_ENUM_VARDEC_NOTYPE,
-	AT_ENUM_VARDEC_TYPE
+	struct at_dec *dec;
 };
 
-struct at_vardec
-{
-	enum at_enum_vardec e;
-	union
-	{
-		enum at_typeid typeid;
-	} u;
 
-	char *idname;
-	struct at_exp *exp;
-};
+/* dec node*/
 
 enum at_enum_dec
 {
@@ -72,31 +89,34 @@ struct at_dec
 	} u;
 };
 
-struct at_decs
+
+/* vardec node*/
+
+enum at_enum_vardec
 {
-	struct at_dec *dec;
+	AT_ENUM_VARDEC_NOTYPE,
+	AT_ENUM_VARDEC_TYPE
 };
 
-struct at_let
+struct at_vardec
 {
-	struct at_decs *decs;
-	/* >>> TODO: prout */
-};
-
-enum at_enum_exp
-{
-	AT_ENUM_EXP_LET
-	/* >>> TODO: prout */
-};
-
-struct at_exp
-{
-	enum at_enum_exp e;
+	enum at_enum_vardec e;
 	union
 	{
-		struct at_let *let;
-		/* >>> TODO: prout */
+		enum at_typeid typeid;
 	} u;
+
+	char *idname;
+	struct at_exp *exp;
+};
+
+
+/* typeid node*/
+enum at_typeid
+{
+	AT_TID_INT,
+	AT_TID_REAL,
+	AT_TID_STRING
 };
 	
 #endif
