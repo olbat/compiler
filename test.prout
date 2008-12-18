@@ -1,0 +1,21 @@
+let
+        var i := 0
+        function fibo( a : int) 
+		: 
+		int
+
+		= 
+
+		if a = 0 
+		then 0 
+		else if a = 1 
+			then 1 
+			else (fibo(a-2) + fibo(a-1))
+in
+	
+        while i <= 10 do
+                (printi(fibo(i));
+                prints("\t");
+                i := i+1)
+        end
+end
