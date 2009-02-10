@@ -64,7 +64,7 @@ void print_vardec(struct at_vardec *vardec)
 	switch(vardec->e)
 	{
 	case AT_ENUM_VARDEC_TYPE:
-		print_typeid(vardec->u.typeid);
+		print_typeid(vardec->u.idtype);
 		break;
 	default:
 		break;
@@ -72,10 +72,10 @@ void print_vardec(struct at_vardec *vardec)
 	printf(")");	
 }
 
-void print_typeid(enum at_typeid typeid)
+void print_typeid(enum at_enum_typeid idtype)
 {
-	printf("typeid(");
-	switch(typeid)
+	printf("idtype(");
+	switch(idtype)
 	{
 	case AT_TID_INT:
 		printf("INT");

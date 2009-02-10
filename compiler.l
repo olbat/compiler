@@ -60,8 +60,19 @@ string		{ return STRING; }
 				return ID;
 			}
 		}
-[0-9]+		{ return INTVAL; }
-\".*\"		{ return STRINGVAL; }
+[0-9]+		{ 
+			yylval.intval = atoi(yytext);
+			return INTVAL;
+		}
+\".*\"		{
+			int len;
+			len = strlen(yytext);
+			yylval.string = (__typeof__(yylval.string)) 
+				malloc((len * sizeof(yylval.string)));
+			memcpy(yylval.string,yytext + 1,len - 1);
+			yylval.string[len] = 0;
+			return STRINGVAL;
+		}
 \/\*.*\*\/	;
 [ \t]		;
 [\n]		{ yylval.line++; }

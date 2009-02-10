@@ -75,7 +75,7 @@ void generate_vardec(struct at_vardec *vardec)
 	switch(vardec->e)
 	{
 	case AT_ENUM_VARDEC_TYPE:
-		generate_typeid(vardec->u.typeid);
+		generate_typeid(vardec->u.idtype);
 		write(fd,vardec->idname,strlen(vardec->idname));
 		WRITES(fd,";");
 		generate_new_line();
@@ -85,9 +85,9 @@ void generate_vardec(struct at_vardec *vardec)
 	}
 }
 
-void generate_typeid(enum at_typeid typeid)
+void generate_typeid(enum at_enum_typeid idtype)
 {
-	switch(typeid)
+	switch(idtype)
 	{
 	case AT_TID_INT:
 		WRITES(fd,"int ");

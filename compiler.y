@@ -1,5 +1,6 @@
 %{
 	#include <stdio.h>
+	#include <string.h>
 	#include "abstract_tree.h"
 	#include "debug.h"
 	#include "generator.h"
@@ -22,22 +23,84 @@
 %left NEG
 
 %union { 
-	enum at_typeid r_typeid; 
-	struct at_vardec *r_vardec;
-	struct at_dec *r_dec;
-	struct at_decs *r_decs;
 	struct at_exp *r_exp;
-	int base;
+	struct at_expitersemic *r_expitersemic;
+	struct at_expitercomma *r_expitercomma;
+	struct at_decs *r_decs;
+	struct at_dec *r_dec;
+	struct at_lvalue *r_lvalue;
+	struct at_vardec *r_vardec;
+	struct at_fundec *r_fundec;
+	struct at_tabdec *r_tabdec;
+	struct at_tyfields *r_tyfields;
+	enum at_enum_typeid r_typeid; 
+
+	int intval;
 	char *string;
 	unsigned int line;
+/*
+	struct at_let *r_let;
+	struct at_intval *r_intval;
+	struct at_stringval *r_stringval;
+	struct at_neg *r_neg;
+	struct at_plus *r_plus;
+	struct at_minus *r_minus;
+	struct at_multiply *r_multiply;
+	struct at_divide *r_divide;
+	struct at_equals *r_equals;
+	struct at_ge *r_ge;
+	struct at_le *r_le;
+	struct at_different *r_different;
+	struct at_gt *r_gt;
+	struct at_lt *r_lt;
+	struct at_and *r_and;
+	struct at_or *r_or;
+	struct at_lvalueaffect *r_lvalueaffect;
+	struct at_if *r_if;
+	struct at_ifelse *r_ifelse;
+	struct at_while *r_while;
+	struct at_for *r_for;
+	struct at_for *r_let;
+*/
 }
 
-%type <base> expitersemic expitersemicP expitercomma expitercomma1 expitercommaP lvalue  tabdec fundec tyfields tyfieldsiter tyfieldsiterP
-%type <r_typeid> typeid
-%type <r_vardec> vardec
+%type <r_exp> exp program 
+%type <r_expitersemic> expitersemic expitersemicP
+%type <r_expitercomma> expitercomma expitercommaP expitercomma1
 %type <r_dec> dec 
 %type <r_decs> decs
-%type <r_exp> exp program
+%type <r_lvalue> lvalue
+%type <r_vardec> vardec
+%type <r_tyfields> tyfields tyfieldsiter tyfieldsiterP
+%type <r_fundec> fundec
+%type <r_tabdec> tabdec
+%type <r_typeid> typeid
+
+/*
+intval stringval neg plus minus multiply divide equals ge le different gt lt and or lvalue lvalueaffect if ifelse while for let
+%type <r_intval> intval
+%type <r_stringval> stringval
+%type <r_neg> neg
+%type <r_plus> plus
+%type <r_minus> minus
+%type <r_multiply> multiply
+%type <r_divide> divide
+%type <r_equals> equals
+%type <r_ge> ge
+%type <r_le> le
+%type <r_different> different
+%type <r_gt> gt
+%type <r_lt> lt
+%type <r_and> and
+%type <r_or> or
+%type <r_lvalue> lvalue
+%type <r_lvalueaffect> lvalueaffect
+%type <r_if> if
+%type <r_ifelse> ifelse
+%type <r_while> while
+%type <r_for> for
+%type <r_let> let
+*/
 
 %%
 			
@@ -53,64 +116,329 @@ program 	: exp
 				printf("\n---code generated---\n");
 			}
 		}
-exp		: LP expitersemic RP  {}
-		| INTVAL {}
-		| STRINGVAL {}
-		| MINUS exp %prec NEG {}
-		| exp PLUS exp {}
-		| exp MINUS exp {}
-		| exp MULTIPLY exp {}
-		| exp DIVIDE  exp {}
-		| exp EQUALS exp {}
-		| exp GE  exp {}
-		| exp LE  exp {}
-		| exp DIFFERENT  exp {}
-		| exp GT  exp {}
-		| exp LT  exp {}
-		| exp AND  exp {}
-		| exp OR exp {}
-		| lvalue {}
-		| lvalue AFFECT exp {}
-		| IF exp THEN exp  {}
-		| IF exp THEN exp ELSE exp {}
-		| WHILE exp DO exp {}
-		| FOR ID AFFECT exp TO exp DO exp {}
+exp		: LP expitersemic RP
+		{
+			struct at_expitersemic *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,
+				AT_ENUM_EXP_EXPITERSEMIC, $2, expitersemic);
+		}
+		| INTVAL
+		{
+			struct at_intval *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->val = yylval.intval;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,
+				AT_ENUM_EXP_INTVAL, e, intval);
+		}
+		| STRINGVAL
+		{
+			int len;
+			struct at_stringval *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->val = yylval.string;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,
+				AT_ENUM_EXP_STRINGVAL, e, stringval);
+		}
+		| MINUS exp %prec NEG
+		{
+			struct at_neg *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->exp = $2;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_NEG,
+				e, neg);
+		}
+		| exp PLUS exp
+		{
+			struct at_plus *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->expl = $1;
+			e->expr = $3;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_PLUS,
+				e, plus);
+		}
+		| exp MINUS exp
+		{
+			struct at_minus *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->expl = $1;
+			e->expr = $3;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_MINUS,
+				e, minus);
+		}
+		| exp MULTIPLY exp
+		{
+			struct at_multiply *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->expl = $1;
+			e->expr = $3;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,
+				AT_ENUM_EXP_MULTIPLY, e, multiply);
+		}
+		| exp DIVIDE  exp
+		{
+			struct at_divide *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->expl = $1;
+			e->expr = $3;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,
+				AT_ENUM_EXP_DIVIDE, e, divide);
+		}
+		| exp EQUALS exp
+		{
+			struct at_equals *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->expl = $1;
+			e->expr = $3;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,
+				AT_ENUM_EXP_EQUALS, e, equals);
+		}
+		| exp GE  exp
+		{
+			struct at_ge *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->expl = $1;
+			e->expr = $3;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_GE,
+				e, ge);
+		}
+		| exp LE  exp
+		{
+			struct at_le *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->expl = $1;
+			e->expr = $3;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_LE,
+				e, le);
+		}
+		| exp DIFFERENT  exp
+		{
+			struct at_different *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->expl = $1;
+			e->expr = $3;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,
+				AT_ENUM_EXP_DIFFERENT, e, different);
+		}
+		| exp GT  exp
+		{
+			struct at_gt *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->expl = $1;
+			e->expr = $3;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *, AT_ENUM_EXP_GT,
+				e, gt);
+		}
+		| exp LT  exp
+		{
+			struct at_lt *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->expl = $1;
+			e->expr = $3;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_LT,
+				e, lt);
+		}
+		| exp AND  exp
+		{
+			struct at_and *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->expl = $1;
+			e->expr = $3;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_AND,
+				e, and);
+		}
+		| exp OR exp
+		{
+			struct at_or *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->expl = $1;
+			e->expr = $3;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_OR,
+				e, or);
+		}
+		| lvalue
+		{
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,
+				AT_ENUM_EXP_LVALUE, $1, lvalue);
+		}
+		| lvalue AFFECT exp
+		{
+			struct at_affect *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->lvalue = $1;
+			e->exp = $3;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,
+				AT_ENUM_EXP_AFFECT, e, affect);
+		}
+		| IF exp THEN exp 
+		{
+			struct at_if *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->cond = $2;
+			e->exp = $4;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_IF,
+				e, ift);
+		}
+		| IF exp THEN exp ELSE exp
+		{
+			struct at_ifelse *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->cond = $2;
+			e->expthen = $4;
+			e->expelse = $6;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,
+				AT_ENUM_EXP_IFELSE, e, ifelse);
+		}
+		| WHILE exp DO exp
+		{
+			struct at_while *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->cond = $2;
+			e->exp = $4;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_WHILE,
+				e, whiled);
+		}
+		| FOR ID AFFECT exp TO exp DO exp
+		{
+			struct at_for *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->init = $4;
+			e->end = $6;
+			e->exp = $8;
+			/* >>>TODO: id */
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_FOR,
+				e, ford);
+		}
 		| LET decs IN expitersemic END 
 		{
-			struct at_let *l;
-			l = (__typeof__(l)) malloc(sizeof(l));
-			l->decs = $2;
+			struct at_let *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->decs = $2;
 			
-			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_LET,l,
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_LET,e,
 				let);
 		}
-		| ID LP expitercomma RP {}
+		| ID LP expitercomma RP
+		{
+			struct at_expiterid *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->idname = yylval.string;
+			e->iter = $3;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,
+				AT_ENUM_EXP_EXPITERID, e, expiterid);
+		}
 		;
-expitersemic	: exp expitersemicP {}
-		| {}
+expitersemic	: exp expitersemicP
+		{
+			struct at_expitersemic *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->exp = $1;
+			e->next = $2;
+			$$ = e;
+		}
+		|
+		{
+			$$ = 0;
+		}
 		; 
-expitersemicP	: SEMICOLON exp expitersemicP {}
-		| {}
+expitersemicP	: SEMICOLON exp expitersemicP
+		{
+			struct at_expitersemic *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->exp = $2;
+			e->next = $3;
+			$$ = e;
+		}
+		|
+		{
+			$$ = 0;
+		}
 		;
-expitercomma	: exp expitercommaP {}
-		| {}
+expitercomma	: exp expitercommaP
+		{
+			struct at_expitercomma *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->exp = $1;
+			e->next = $2;
+			$$ = e;
+		}
+		|
+		{
+			$$ = 0;
+		}
 		; 
-expitercomma1	: exp expitercommaP {}
+expitercomma1	: exp expitercommaP
+		{
+			struct at_expitercomma *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->exp = $1;
+			e->next = $2;
+			$$ = e;
+		}
 		;
-expitercommaP	: COMMA exp expitercommaP {}
-		| {}
+expitercommaP	: COMMA exp expitercommaP
+		{
+			struct at_expitercomma *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->exp = $2;
+			e->next = $3;
+			$$ = e;
+		}
+		|
+		{
+			$$ = 0;
+		}
 		;
-lvalue		: ID {}
-		| ID LSB exp RSB {}
+lvalue		: ID
+		{
+			struct at_lvalue *l;
+			l = (__typeof__(l)) malloc(sizeof(l));
+			l->idname = yylval.string;
+			l->e = AT_ENUM_LVALUE_VAR;
+			$$ = l;
+		}
+		| ID LSB exp RSB
+		{
+			struct at_lvalue *l;
+			l = AT_DEFINE_CHOICE(__typeof__(l),AT_ENUM_LVALUE_TAB,
+				$3, exp);
+			l->idname = yylval.string;
+			$$ = l;
+		}
 		;
 decs		: dec decs
 		{
 			struct at_decs *s;
 			s = (__typeof__(s)) malloc(sizeof(s));
 			s->dec = $1;
+			s->next = $2;
 			$$ = s;
 		}
-		| {}
+		|
+		{
+			$$ = 0;
+		}
 		;
 dec		: vardec
 		{
@@ -119,42 +447,117 @@ dec		: vardec
 				$1, vardec);
 			$$ = s;
 		}
-		| tabdec {}
-		| fundec {} 
+		| tabdec
+		{
+			struct at_dec *s;
+			s = AT_DEFINE_CHOICE(__typeof__(s),AT_ENUM_DEC_TABDEC,
+				$1, tabdec);
+			$$ = s;
+		}
+		| fundec
+		{
+			struct at_dec *s;
+			s = AT_DEFINE_CHOICE(__typeof__(s),AT_ENUM_DEC_FUNDEC,
+				$1, fundec);
+			$$ = s;
+		} 
 		;
 vardec		: VAR ID AFFECT exp 
 		{
-			struct at_vardec *s;
-			s = AT_DEFINE_CHOICE(__typeof__(s),AT_ENUM_VARDEC_TYPE,
-				0,typeid);
-			s->exp = $4;
-			s->idname = $2;
-			$$ = s;
-			
+			struct at_vardec *v;
+			v = (__typeof__(v)) malloc(sizeof(v));	
+			v->e = AT_ENUM_VARDEC_NOTYPE;
+			v->idname = yylval.string;
+			v->exp = $4;
+			$$ = v;
 		}
 		| VAR ID COLON typeid AFFECT exp
 		{
-			struct at_vardec *s;
-			s = AT_DEFINE_CHOICE(__typeof__(s),AT_ENUM_VARDEC_TYPE,
-				$4,typeid);
-			s->exp = $6;
-			s->idname = $2;
-			$$ = s;
+			struct at_vardec *v;
+			v = AT_DEFINE_CHOICE(__typeof__(v),AT_ENUM_VARDEC_TYPE,
+				$4, idtype);
+			v->exp = $6;
+			v->idname = yylval.string;
+			$$ = v;
 		}
 		;
-fundec		: FUNCTION ID LP tyfields RP EQUALS exp  {}
-		| FUNCTION ID LP tyfields RP COLON typeid EQUALS exp {} 
+fundec		: FUNCTION ID LP tyfields RP EQUALS exp
+		{
+			struct at_fundec *f;
+			f = (__typeof__(f)) malloc(sizeof(f));	
+			f->e = AT_ENUM_FUNDEC_PROC;
+			f->idname = yylval.string;
+
+			f->tyfields = $4;
+			f->exp = $7;
+			$$ = f;
+		}
+		| FUNCTION ID LP tyfields RP COLON typeid EQUALS exp
+		{
+			struct at_fundec *f;
+			f = AT_DEFINE_CHOICE(__typeof__(f),AT_ENUM_FUNDEC_FUNC,
+				$7, idtype);
+			f->idname = yylval.string;
+			
+			f->tyfields = $4;
+			f->exp = $9;
+			$$ = f;
+		} 
 		;
-tabdec		: VAR ID COLON typeid LSB ID RSB {}
-		| VAR ID COLON typeid LSB ID RSB AFFECT LCB expitercomma1 RCB {}
+tabdec		: VAR ID COLON typeid LSB ID RSB
+		{
+			struct at_tabdec *t;
+			t = (__typeof__(t)) malloc(sizeof(t));
+			t->idname = yylval.string;
+			/* >>>TODO: fix this bug */
+			t->size = atoi(yylval.string);
+			t->idtype = $4;
+			$$ = t;
+		}
+		| VAR ID COLON typeid LSB ID RSB AFFECT LCB expitercomma1 RCB
+		{
+			struct at_tabdec *t;
+			t = AT_DEFINE_CHOICE(__typeof__(t),
+				AT_ENUM_TABDEC_AFFECT, $10, expitercomma);
+			t->idname = yylval.string;
+			/* >>>TODO: fix this bug */
+			t->size = atoi(yylval.string);
+			t->idtype = $4;
+			$$ = t;
+		}
 		;
-tyfields	: tyfieldsiter {} 
-		| {}
+tyfields	: tyfieldsiter
+		{
+			$$ = $1;
+		} 
+		|
+		{
+			$$ = 0;
+		}
 		;
-tyfieldsiter	: ID COLON typeid tyfieldsiterP {}
+tyfieldsiter	: ID COLON typeid tyfieldsiterP
+		{
+			struct at_tyfields *t;
+			t = (__typeof__(t)) malloc(sizeof(t));
+			t->idname = yylval.string;
+			t->idtype = $3;
+			t->next = $4;
+			$$ = t;
+		}
 		;
-tyfieldsiterP	: COMMA ID COLON typeid tyfieldsiterP {}
-		| {}
+tyfieldsiterP	: COMMA ID COLON typeid tyfieldsiterP
+		{
+			struct at_tyfields *t;
+			t = (__typeof__(t)) malloc(sizeof(t));
+			t->idname = yylval.string;
+			t->idtype = $4;
+			t->next = $5;
+			$$ = t;
+		}
+		|
+		{
+			$$ = 0;
+		}
 		;
 typeid		: INT { $$ = AT_TID_INT; }
 		| REAL { $$ = AT_TID_REAL; }

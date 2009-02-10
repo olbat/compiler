@@ -12,6 +12,6 @@ void generate_let(struct at_let *let);
 void generate_decs(struct at_decs *decs);
 void generate_dec(struct at_dec *dec);
 void generate_vardec(struct at_vardec *vardec);
-void generate_typeid(enum at_typeid typeid);
+void generate_typeid(enum at_enum_typeid idtype);
 
 #endif
