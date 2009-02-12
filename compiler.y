@@ -9,8 +9,9 @@
 %}
 
 %start program
-%token LP RP LCB RCB LSB RSB SEMICOLON IF THEN ELSE WHILE DO FOR TO LET IN END COMMA PLUS MINUS MULTIPLY DIVIDE GE LE DIFFERENT GT LT AND OR AFFECT COLON EQUALS VAR FUNCTION INT REAL STRING INTVAL STRINGVAL NEG
-%token <string> ID
+%token LP RP LCB RCB LSB RSB SEMICOLON IF THEN ELSE WHILE DO FOR TO LET IN END COMMA PLUS MINUS MULTIPLY DIVIDE GE LE DIFFERENT GT LT AND OR AFFECT COLON EQUALS VAR FUNCTION INT REAL STRING NEG
+%token <string> ID STRINGVAL
+%token <intval> INTVAL
 
 %nonassoc DO
 %nonassoc THEN
@@ -128,7 +129,7 @@ exp		: LP expitersemic RP
 		{
 			struct at_intval *e;
 			e = (__typeof__(e)) malloc(sizeof(e));
-			e->val = yylval.intval;
+			e->val = $1;
 			
 			$$ = AT_DEFINE_CHOICE(struct at_exp *,
 				AT_ENUM_EXP_INTVAL, e, intval);
@@ -138,7 +139,7 @@ exp		: LP expitersemic RP
 			int len;
 			struct at_stringval *e;
 			e = (__typeof__(e)) malloc(sizeof(e));
-			e->val = yylval.string;
+			e->val = $1;
 			
 			$$ = AT_DEFINE_CHOICE(struct at_exp *,
 				AT_ENUM_EXP_STRINGVAL, e, stringval);
@@ -342,7 +343,7 @@ exp		: LP expitersemic RP
 		{
 			struct at_expiterid *e;
 			e = (__typeof__(e)) malloc(sizeof(e));
-			e->idname = yylval.string;
+			e->idname = $1;
 			e->iter = $3;
 			
 			$$ = AT_DEFINE_CHOICE(struct at_exp *,
@@ -414,7 +415,7 @@ lvalue		: ID
 		{
 			struct at_lvalue *l;
 			l = (__typeof__(l)) malloc(sizeof(l));
-			l->idname = yylval.string;
+			l->idname = $1;
 			l->e = AT_ENUM_LVALUE_VAR;
 			$$ = l;
 		}
@@ -423,7 +424,7 @@ lvalue		: ID
 			struct at_lvalue *l;
 			l = AT_DEFINE_CHOICE(__typeof__(l),AT_ENUM_LVALUE_TAB,
 				$3, exp);
-			l->idname = yylval.string;
+			l->idname = $1;
 			$$ = l;
 		}
 		;
@@ -442,32 +443,31 @@ decs		: dec decs
 		;
 dec		: vardec
 		{
-			struct at_dec *s;
-			s = AT_DEFINE_CHOICE(__typeof__(s),AT_ENUM_DEC_VARDEC,
-				$1, vardec);
-			$$ = s;
-		}
-		| tabdec
-		{
-			struct at_dec *s;
-			s = AT_DEFINE_CHOICE(__typeof__(s),AT_ENUM_DEC_TABDEC,
-				$1, tabdec);
-			$$ = s;
+			print_exp(($1)->exp);
+			printf("\n");
+			$$ = AT_DEFINE_CHOICE(struct at_dec *,
+				AT_ENUM_DEC_VARDEC, $1, vardec);
+			print_exp(($1)->exp);
+			printf("\n");
 		}
 		| fundec
 		{
-			struct at_dec *s;
-			s = AT_DEFINE_CHOICE(__typeof__(s),AT_ENUM_DEC_FUNDEC,
-				$1, fundec);
-			$$ = s;
+			$$ = AT_DEFINE_CHOICE(struct at_dec *,
+				AT_ENUM_DEC_FUNDEC, $1, fundec);
+			/* print_fundec(($$)->u.fundec); */
 		} 
+		| tabdec
+		{
+			$$ = AT_DEFINE_CHOICE(struct at_dec *,
+				AT_ENUM_DEC_TABDEC, $1, tabdec);
+		}
 		;
 vardec		: VAR ID AFFECT exp 
 		{
 			struct at_vardec *v;
 			v = (__typeof__(v)) malloc(sizeof(v));	
 			v->e = AT_ENUM_VARDEC_NOTYPE;
-			v->idname = yylval.string;
+			v->idname = $2;
 			v->exp = $4;
 			$$ = v;
 		}
@@ -476,8 +476,8 @@ vardec		: VAR ID AFFECT exp
 			struct at_vardec *v;
 			v = AT_DEFINE_CHOICE(__typeof__(v),AT_ENUM_VARDEC_TYPE,
 				$4, idtype);
+			v->idname = $2;
 			v->exp = $6;
-			v->idname = yylval.string;
 			$$ = v;
 		}
 		;
@@ -486,8 +486,7 @@ fundec		: FUNCTION ID LP tyfields RP EQUALS exp
 			struct at_fundec *f;
 			f = (__typeof__(f)) malloc(sizeof(f));	
 			f->e = AT_ENUM_FUNDEC_PROC;
-			f->idname = yylval.string;
-
+			f->idname = $2;
 			f->tyfields = $4;
 			f->exp = $7;
 			$$ = f;
@@ -497,8 +496,7 @@ fundec		: FUNCTION ID LP tyfields RP EQUALS exp
 			struct at_fundec *f;
 			f = AT_DEFINE_CHOICE(__typeof__(f),AT_ENUM_FUNDEC_FUNC,
 				$7, idtype);
-			f->idname = yylval.string;
-			
+			f->idname = $2;
 			f->tyfields = $4;
 			f->exp = $9;
 			$$ = f;
@@ -508,9 +506,8 @@ tabdec		: VAR ID COLON typeid LSB ID RSB
 		{
 			struct at_tabdec *t;
 			t = (__typeof__(t)) malloc(sizeof(t));
-			t->idname = yylval.string;
-			/* >>>TODO: fix this bug */
-			t->size = atoi(yylval.string);
+			t->idname = $2;
+			t->size = atoi($6);
 			t->idtype = $4;
 			$$ = t;
 		}
@@ -519,9 +516,8 @@ tabdec		: VAR ID COLON typeid LSB ID RSB
 			struct at_tabdec *t;
 			t = AT_DEFINE_CHOICE(__typeof__(t),
 				AT_ENUM_TABDEC_AFFECT, $10, expitercomma);
-			t->idname = yylval.string;
-			/* >>>TODO: fix this bug */
-			t->size = atoi(yylval.string);
+			t->idname = $2;
+			t->size = atoi($6);
 			t->idtype = $4;
 			$$ = t;
 		}
@@ -539,7 +535,7 @@ tyfieldsiter	: ID COLON typeid tyfieldsiterP
 		{
 			struct at_tyfields *t;
 			t = (__typeof__(t)) malloc(sizeof(t));
-			t->idname = yylval.string;
+			t->idname = $1;
 			t->idtype = $3;
 			t->next = $4;
 			$$ = t;
@@ -549,9 +545,10 @@ tyfieldsiterP	: COMMA ID COLON typeid tyfieldsiterP
 		{
 			struct at_tyfields *t;
 			t = (__typeof__(t)) malloc(sizeof(t));
-			t->idname = yylval.string;
+			t->idname = $2;
 			t->idtype = $4;
 			t->next = $5;
+			printf("A: %x\n",t);
 			$$ = t;
 		}
 		|

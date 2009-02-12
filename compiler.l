@@ -47,7 +47,7 @@ function	{ return FUNCTION; }
 int		{ return INT; }
 real		{ return REAL; }
 string		{ return STRING; }
-[a-zA-Z_][a-zA-Z_\-0-9]* { 
+[a-zA-Z_][a-zA-Z_0-9]* { 
 			if (strlen(yytext) > ID_MAX_LEN)
 				yyerror("ident too long");
 			else

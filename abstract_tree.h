@@ -257,28 +257,6 @@ struct at_decs
 	struct at_decs *next;
 };
 
-
-/* dec node*/
-
-enum at_enum_dec
-{
-	AT_ENUM_DEC_VARDEC,
-	AT_ENUM_DEC_TABDEC,
-	AT_ENUM_DEC_FUNDEC
-};
-
-struct at_dec
-{
-	enum at_enum_dec e;
-	union 
-	{
-		struct at_vardec *vardec;
-		struct at_tabdec *tabdec;
-		struct at_fundec *fundec;
-	} u;
-};
-
-
 /* vardec node*/
 
 enum at_enum_vardec
@@ -358,6 +336,26 @@ struct at_tabdec
 	char *idname;
 	int size;
 	enum at_enum_typeid idtype;
+};
+
+/* dec node*/
+
+enum at_enum_dec
+{
+	AT_ENUM_DEC_VARDEC,
+	AT_ENUM_DEC_FUNDEC,
+	AT_ENUM_DEC_TABDEC
+};
+
+struct at_dec
+{
+	enum at_enum_dec e;
+	union 
+	{
+		struct at_vardec *vardec;
+		struct at_fundec *fundec;
+		struct at_tabdec *tabdec;
+	} u;
 };
 	
 #endif

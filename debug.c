@@ -25,7 +25,6 @@ void print_let(struct at_let *let)
 	if (!let)
 		return;
 	print_decs(let->decs);
-	/* >>> TODO: prout */
 	printf(")");	
 }
 
@@ -34,8 +33,11 @@ void print_decs(struct at_decs *decs)
 	printf("decs(");
 	if (!decs)
 		return;
-	print_dec(decs->dec);
-	/* >>> TODO: prout */	
+	while (decs)
+	{
+		print_dec(decs->dec);
+		decs = decs->next;
+	}
 	printf(")");	
 }
 
@@ -46,8 +48,11 @@ void print_dec(struct at_dec *dec)
 		return;
 	switch(dec->e)
 	{
-	case AT_ENUM_EXP_LET:
+	case AT_ENUM_DEC_VARDEC:
 		print_vardec(dec->u.vardec);
+		break;
+	case AT_ENUM_DEC_FUNDEC:
+		print_fundec(dec->u.fundec);
 		break;
 	default:
 		break;
@@ -69,6 +74,50 @@ void print_vardec(struct at_vardec *vardec)
 	default:
 		break;
 	}
+	printf(")");	
+	printf("\n");
+	print_exp(vardec->exp);
+}
+
+void print_fundec(struct at_fundec *fundec)
+{
+	printf("fundec(");
+	if (!fundec)
+		return;
+
+	printf("idname:%s ",(fundec->idname ? fundec->idname : "{none}"));
+
+	switch(fundec->e)
+	{
+	case AT_ENUM_VARDEC_TYPE:
+		print_typeid(fundec->u.idtype);
+		break;
+	default:
+		break;
+	}
+
+	/* >>>TODO: fix this bug */
+	print_tyfields(fundec->tyfields);
+	print_exp(fundec->exp);
+
+	printf(")");	
+}
+
+void print_tyfields(struct at_tyfields *tyfields)
+{
+	printf("tyfields(");
+	if (!tyfields)
+		return;
+
+	while (tyfields)
+	{
+		print_typeid(tyfields->idtype);
+		printf("idname:%s ",(tyfields->idname ? tyfields->idname 
+			: "{none}"));
+		printf(",");
+		tyfields = tyfields->next;
+	}
+
 	printf(")");	
 }
 
