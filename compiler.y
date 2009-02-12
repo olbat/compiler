@@ -10,8 +10,9 @@
 
 %start program
 %token LP RP LCB RCB LSB RSB SEMICOLON IF THEN ELSE WHILE DO FOR TO LET IN END COMMA PLUS MINUS MULTIPLY DIVIDE GE LE DIFFERENT GT LT AND OR AFFECT COLON EQUALS VAR FUNCTION INT REAL STRING NEG
-%token <string> ID STRINGVAL
 %token <intval> INTVAL
+%token <realval> REALVAL
+%token <string> ID STRINGVAL
 
 %nonassoc DO
 %nonassoc THEN
@@ -37,11 +38,13 @@
 	enum at_enum_typeid r_typeid; 
 
 	int intval;
+	float realval;
 	char *string;
 	unsigned int line;
 /*
 	struct at_let *r_let;
 	struct at_intval *r_intval;
+	struct at_realval *r_realval;
 	struct at_stringval *r_stringval;
 	struct at_neg *r_neg;
 	struct at_plus *r_plus;
@@ -133,6 +136,15 @@ exp		: LP expitersemic RP
 			
 			$$ = AT_DEFINE_CHOICE(struct at_exp *,
 				AT_ENUM_EXP_INTVAL, e, intval);
+		}
+		| REALVAL
+		{
+			struct at_realval *e;
+			e = (__typeof__(e)) malloc(sizeof(e));
+			e->val = $1;
+			
+			$$ = AT_DEFINE_CHOICE(struct at_exp *,
+				AT_ENUM_EXP_REALVAL, e, realval);
 		}
 		| STRINGVAL
 		{
@@ -326,7 +338,6 @@ exp		: LP expitersemic RP
 			e->init = $4;
 			e->end = $6;
 			e->exp = $8;
-			/* >>>TODO: id */
 			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_FOR,
 				e, ford);
 		}
@@ -443,12 +454,8 @@ decs		: dec decs
 		;
 dec		: vardec
 		{
-			print_exp(($1)->exp);
-			printf("\n");
 			$$ = AT_DEFINE_CHOICE(struct at_dec *,
 				AT_ENUM_DEC_VARDEC, $1, vardec);
-			print_exp(($1)->exp);
-			printf("\n");
 		}
 		| fundec
 		{

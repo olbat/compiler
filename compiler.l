@@ -64,6 +64,10 @@ string		{ return STRING; }
 			yylval.intval = atoi(yytext);
 			return INTVAL;
 		}
+[0-9]+\.[0-9]+  {
+			yylval.realval = atof(yytext);
+			return REALVAL;
+		}
 \".*\"		{
 			int len;
 			len = strlen(yytext);

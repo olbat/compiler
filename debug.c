@@ -75,7 +75,6 @@ void print_vardec(struct at_vardec *vardec)
 		break;
 	}
 	printf(")");	
-	printf("\n");
 	print_exp(vardec->exp);
 }
 
@@ -89,14 +88,13 @@ void print_fundec(struct at_fundec *fundec)
 
 	switch(fundec->e)
 	{
-	case AT_ENUM_VARDEC_TYPE:
+	case AT_ENUM_FUNDEC_FUNC:
 		print_typeid(fundec->u.idtype);
 		break;
 	default:
 		break;
 	}
 
-	/* >>>TODO: fix this bug */
 	print_tyfields(fundec->tyfields);
 	print_exp(fundec->exp);
 
@@ -111,12 +109,13 @@ void print_tyfields(struct at_tyfields *tyfields)
 
 	while (tyfields)
 	{
-		print_typeid(tyfields->idtype);
 		printf("idname:%s ",(tyfields->idname ? tyfields->idname 
 			: "{none}"));
+		print_typeid(tyfields->idtype);
 		printf(",");
 		tyfields = tyfields->next;
 	}
+	printf("\010");
 
 	printf(")");	
 }

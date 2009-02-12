@@ -19,6 +19,7 @@ enum at_enum_exp
 {
 	AT_ENUM_EXP_EXPITERSEMIC,
 	AT_ENUM_EXP_INTVAL,
+	AT_ENUM_EXP_REALVAL,
 	AT_ENUM_EXP_STRINGVAL,
 	AT_ENUM_EXP_NEG,
 	AT_ENUM_EXP_PLUS,
@@ -50,6 +51,7 @@ struct at_exp
 	{
 		struct at_expitersemic *expitersemic;
 		struct at_intval *intval;
+		struct at_realval *realval;
 		struct at_stringval *stringval;
 		struct at_neg *neg;
 		struct at_plus *plus;
@@ -96,6 +98,11 @@ struct at_expiterid
 struct at_intval
 {
 	int val;
+};
+
+struct at_realval
+{
+	float val;
 };
 
 struct at_stringval
@@ -267,14 +274,14 @@ enum at_enum_vardec
 
 struct at_vardec
 {
+	char *idname;
+	struct at_exp *exp;
+
 	enum at_enum_vardec e;
 	union
 	{
 		enum at_enum_typeid idtype;
 	} u;
-
-	char *idname;
-	struct at_exp *exp;
 };
 
 /*
@@ -309,14 +316,14 @@ enum at_enum_fundec
 
 struct at_fundec
 {
+	char *idname;
+	struct at_tyfields *tyfields;
+	struct at_exp *exp;
 	enum at_enum_fundec e;
 	union
 	{
 		enum at_enum_typeid idtype;
 	} u;
-	char *idname;
-	struct at_tyfields *tyfields;
-	struct at_exp *exp;
 };
 
 enum at_enum_tabdec
@@ -327,15 +334,14 @@ enum at_enum_tabdec
 
 struct at_tabdec
 {
+	char *idname;
+	int size;
+	enum at_enum_typeid idtype;
 	enum at_enum_tabdec e;
 	union
 	{
 		struct at_expitercomma *expitercomma;
 	} u;
-	
-	char *idname;
-	int size;
-	enum at_enum_typeid idtype;
 };
 
 /* dec node*/
