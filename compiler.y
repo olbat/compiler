@@ -52,7 +52,7 @@
 }
 
 %type <r_exp> exp program 
-%type <r_expitersemic> expitersemic expitersemicP
+%type <r_expitersemic> expitersemic expitersemicP 
 %type <r_expitercomma> expitercomma expitercommaP expitercomma1
 %type <r_dec> dec 
 %type <r_decs> decs decsdecs
@@ -328,10 +328,8 @@ exp		: LP expitersemic RP
 			struct at_let *e;
 			e = (__typeof__(e)) malloc(sizeof(e));
 			e->decs = $2;
-/*
-			if (curblock->parent)
-				curblock->parent = curblock->parent->parent;
-*/			
+			e->expitersemic = $4;
+
 			__typeof__(curblock) tmp;
 			tmp = curblock->parent;
                         if (curblock->parent)

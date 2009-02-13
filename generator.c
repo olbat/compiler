@@ -23,9 +23,9 @@ void generate(struct at_exp *exp)
 	fd = open("resultat.c",O_CREAT | O_WRONLY | O_TRUNC);
 
 	WRITES(fd,"#include <stdio.h>\n");
-	WRITES(fd,"void printi(int i) { printf(\"%d\",i); }\n");
-	WRITES(fd,"void printr(float f) { printf(\"%f\",f); }\n");
-	WRITES(fd,"void prints(char *s) { printf(\"%s\",s); }\n");
+	WRITES(fd,"void printi(int i) { printf(\"%d\\n\",i); }\n");
+	WRITES(fd,"void printr(float f) { printf(\"%f\\n\",f); }\n");
+	WRITES(fd,"void prints(char *s) { printf(\"%s\\n\",s); }\n");
 	WRITES(fd,"int main(void)\n{");
 	generate_new_line();
 	generate_exp(exp);
@@ -150,6 +150,7 @@ void generate_realval(struct at_realval *realval)
 
 void generate_stringval(struct at_stringval *stringval)
 {
+	WRITES(fd,"\"");
 	write(fd,stringval->val,strlen(stringval->val));
 }
 
@@ -407,8 +408,8 @@ void generate_vardec(struct at_vardec *vardec)
 		break;
 	}
 	write(fd,vardec->idname,strlen(vardec->idname));
+	WRITES(fd," = ");
 	generate_exp(vardec->exp);
-	
 	WRITES(fd,";");
 	generate_new_line();
 }
