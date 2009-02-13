@@ -1,4 +1,5 @@
 %{
+/* #define _COMPILER_DEBUG */
 	#include <stdio.h>
 	#include <string.h>
 	#include "abstract_tree.h"
@@ -6,6 +7,8 @@
 	#include "errors.h"
 	#include "debug.h"
 	#include "generator.h"
+
+	extern int err_error;
 	
 	struct st_node *curblock, *initblock;
 
@@ -118,15 +121,29 @@ program 	: exp
 		{
 			if ($1)
 			{
+#ifdef _COMPILER_DEBUG
 				printf("abstract tree: ");
 				print_at_exp($1);
 				printf("\n\n");
 				printf("symbols table: ");
 				print_st_node(initblock);
 				printf("\n\n");
-				printf("---generating code---\n");
-				generate($1);
-				printf("\n---code generated---\n");
+#endif
+				if (err_error)
+				{
+					fprintf(stderr,
+						"Error, can't generate code\n");
+				}
+				else
+				{
+#ifdef _COMPILER_DEBUG
+					printf("---generating code---\n");
+#endif
+					generate($1);
+#ifdef _COMPILER_DEBUG
+					printf("\n---code generated---\n");
+#endif
+				}
 			}
 		}
 exp		: LP expitersemic RP
@@ -299,7 +316,7 @@ exp		: LP expitersemic RP
 			$$ = AT_DEFINE_CHOICE(struct at_exp *,
 				AT_ENUM_EXP_LVALUE, $1, lvalue);
 			if (!st_node_lookup_entry(curblock,$1->idname))
-				err_msg(ERR_ENUM_ERROR_UNDECLARED,yylval.line,$1->idname);
+				err_msg_error(ERR_ENUM_ERROR_UNDECLARED,yylval.line,$1->idname);
 		}
 		| lvalue AFFECT exp
 		{
@@ -311,7 +328,7 @@ exp		: LP expitersemic RP
 			$$ = AT_DEFINE_CHOICE(struct at_exp *,
 				AT_ENUM_EXP_AFFECT, e, affect);
 			if (!st_node_lookup_entry(curblock,$1->idname))
-				err_msg(ERR_ENUM_ERROR_UNDECLARED,yylval.line,$1->idname);
+				err_msg_error(ERR_ENUM_ERROR_UNDECLARED,yylval.line,$1->idname);
 		}
 		| IF exp THEN exp 
 		{
@@ -355,7 +372,7 @@ exp		: LP expitersemic RP
 			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_FOR,
 				e, ford);
 			if (!st_node_lookup_entry(curblock,$2))
-				err_msg(ERR_ENUM_ERROR_UNDECLARED,yylval.line,$2);
+				err_msg_error(ERR_ENUM_ERROR_UNDECLARED,yylval.line,$2);
 		}
 		| LET decsdecs IN expitersemic END 
 		{
@@ -386,7 +403,7 @@ exp		: LP expitersemic RP
 				AT_ENUM_EXP_EXPITERID, e, expiterid);
 
 			if (!st_node_lookup_entry(curblock,$1))
-				err_msg(ERR_ENUM_ERROR_UNDECLARED,yylval.line,$1);
+				err_msg_error(ERR_ENUM_ERROR_UNDECLARED,yylval.line,$1);
 		}
 		;
 expitersemic	: exp expitersemicP

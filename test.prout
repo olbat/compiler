@@ -1,6 +1,6 @@
 let
         var i : int := 0
-        function fibo( a : int, b : int) : int = 
+        function fibo( a : int ) : int = 
 		if a = 0 
 		then 0 
 		else if a = 1 
@@ -10,7 +10,7 @@ in
 	(let
 		var z : int := 1
 	in
-		printi(a)
+		printi(i)
 	end)
 	;
 	
