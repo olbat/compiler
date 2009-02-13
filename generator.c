@@ -20,7 +20,7 @@ void generate_new_line()
 
 void generate(struct at_exp *exp)
 {
-	fd = open("resultat.c",O_CREAT | O_WRONLY);
+	fd = open("resultat.c",O_CREAT | O_WRONLY | O_TRUNC);
 
 	WRITES(fd,"#include <stdio.h>\n");
 	WRITES(fd,"void printi(int i) { printf(\"%d\",i); }\n");
@@ -385,6 +385,9 @@ void generate_dec(struct at_dec *dec)
 	case AT_ENUM_DEC_FUNDEC:
 		generate_fundec(dec->u.fundec);
 		break;
+	case AT_ENUM_DEC_TABDEC:
+		generate_tabdec(dec->u.tabdec);
+		break;
 	default:
 		break;
 	}
@@ -439,6 +442,35 @@ void generate_fundec(struct at_fundec *fundec)
 	nbimbr--;
 	generate_new_line();
 	WRITES(fd,"}");
+	generate_new_line();
+}
+
+void generate_tabdec(struct at_tabdec *tabdec)
+{
+	char buff[64];
+	int len;
+
+	if (!tabdec)
+		return;
+	
+	generate_typeid(tabdec->idtype);
+	write(fd,tabdec->idname,strlen(tabdec->idname));
+	WRITES(fd,"[");
+	len = snprintf(buff,sizeof(buff),"%d",tabdec->size);
+	write(fd,buff,len);
+	WRITES(fd,"]");
+
+	switch(tabdec->e)
+	{
+	case AT_ENUM_TABDEC_AFFECT:
+		WRITES(fd," = { ");
+		generate_expitercomma(tabdec->u.expitercomma);
+		WRITES(fd," }");
+		break;
+	default:
+		break;
+	}
+	WRITES(fd,";");
 	generate_new_line();
 }
 

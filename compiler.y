@@ -49,31 +49,6 @@
 	float realval;
 	char *string;
 	unsigned int line;
-/*
-	struct at_let *r_let;
-	struct at_intval *r_intval;
-	struct at_realval *r_realval;
-	struct at_stringval *r_stringval;
-	struct at_neg *r_neg;
-	struct at_plus *r_plus;
-	struct at_minus *r_minus;
-	struct at_multiply *r_multiply;
-	struct at_divide *r_divide;
-	struct at_equals *r_equals;
-	struct at_ge *r_ge;
-	struct at_le *r_le;
-	struct at_different *r_different;
-	struct at_gt *r_gt;
-	struct at_lt *r_lt;
-	struct at_and *r_and;
-	struct at_or *r_or;
-	struct at_lvalueaffect *r_lvalueaffect;
-	struct at_if *r_if;
-	struct at_ifelse *r_ifelse;
-	struct at_while *r_while;
-	struct at_for *r_for;
-	struct at_for *r_let;
-*/
 }
 
 %type <r_exp> exp program 
@@ -88,32 +63,6 @@
 %type <r_tabdec> tabdec
 %type <r_typeid> typeid
 %type <string> idfunc
-
-/*
-intval stringval neg plus minus multiply divide equals ge le different gt lt and or lvalue lvalueaffect if ifelse while for let
-%type <r_intval> intval
-%type <r_stringval> stringval
-%type <r_neg> neg
-%type <r_plus> plus
-%type <r_minus> minus
-%type <r_multiply> multiply
-%type <r_divide> divide
-%type <r_equals> equals
-%type <r_ge> ge
-%type <r_le> le
-%type <r_different> different
-%type <r_gt> gt
-%type <r_lt> lt
-%type <r_and> and
-%type <r_or> or
-%type <r_lvalue> lvalue
-%type <r_lvalueaffect> lvalueaffect
-%type <r_if> if
-%type <r_ifelse> ifelse
-%type <r_while> while
-%type <r_for> for
-%type <r_let> let
-*/
 
 %%
 			

@@ -44,6 +44,7 @@ void generate_decs(struct at_decs *decs);
 void generate_dec(struct at_dec *dec);
 void generate_vardec(struct at_vardec *vardec);
 void generate_fundec(struct at_fundec *fundec);
+void generate_tabdec(struct at_tabdec *tabdec);
 void generate_tyfields(struct at_tyfields *tyfields);
 void generate_typeid(enum at_enum_typeid idtype);
 
