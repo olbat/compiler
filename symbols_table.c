@@ -1,165 +1,131 @@
 #include "symbols_table.h"
-#include "hashtable.h"
-#include "hashtable_type.h"
-#include "tools/math_tools.h"
+#include <stdlib.h> /* malloc */
+#include <string.h> /* strcmp */
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
+static int global_num = 0;
 
-struct symbol_table *symbol_table_init(struct symbol_table *st)
+struct st_node *
+st_node_init(struct st_node *parent)
 {
-        st->hashtable = (struct hashtable *) malloc(sizeof(struct hashtable));
-        hashtable_init(st->hashtable,SYMBOL_TABLE_SIZE);
-        return st;
+	struct st_node *ret, *ptr;
+	
+	ret = (__typeof__(ret)) malloc(sizeof(ret));
+	ret->num = global_num++;
+	ret->parent = parent;
+	
+	if (parent)
+	{
+		if (parent->childs)
+		{
+			ptr = parent->childs;
+			while(ptr->childs)
+				ptr = ptr->childs;
+			ptr->childs = ret;
+		}
+		else
+			parent->childs = ret;
+	}
+
+	ret->childs = 0;	
+	ret->entries = 0;
+	
+	return ret;
 }
 
-int symbol_table_add(struct symbol_table *st, char *name, __u16 value)
+void
+st_node_free(struct st_node *node)
 {
-        static int no = 1;
-        struct value *val;
-        
-        val = (struct value *) malloc(sizeof(struct value));
-        val->name = (char *) malloc(my_strlen(name) + 1);
-        memcpy(val->name,name,my_strlen(name) + 1);
-        val->value = value;
-        val->flags = 0;
+	__typeof__(node) ptr, ptr2;
 
-        hashtable_add(st->hashtable,my_itoa(no,10),val);
-        return no++;
+	if (!node)
+		return;
+
+	ptr = node->childs;
+
+	st_entries_free(node->entries);
+
+	while (ptr)
+	{
+		ptr2 = ptr->childs;
+		st_node_free(ptr);
+		ptr = ptr2;
+	}
+
+	free(node);
 }
 
-struct symbol_table *symbol_table_delete(struct symbol_table *st)
+struct st_node *
+st_node_add_entry(
+	struct st_node *node,
+	struct st_entry *entry)
 {
-        hashtable_delete(st->hashtable);
-        free(st->hashtable);
-        return st;
+	if (node->entries)
+	{
+		__typeof(node->entries) ptr;
+		ptr = node->entries;
+		while (ptr->next)
+			ptr = ptr->next;
+		ptr = entry;
+	}
+	else
+		node->entries = entry;
+
+	return node;
 }
 
-int st_get_next_key(struct symbol_table *st)
+void
+st_entries_free(struct st_entry *entry)
 {
-        static int key = 1;
-        return (key++ % st->hashtable->count);
+	if (!entry)
+		return;
+
+	free(entry->name);
+
+	if (entry->next)
+		st_entries_free(entry->next);
+
+	free(entry);
 }
 
-char *st_get_name(struct symbol_table *st, int key)
+struct st_entry *
+st_entry_init(
+	char *name,
+	enum st_enum_type type)
 {
-        struct value *val;
+	struct st_entry *ret;
+	ret = (__typeof__(ret)) malloc(sizeof(ret));
 
-        hashtable_lookup(st->hashtable,my_itoa(key,10),&val);
+	ret->name = name;
+	ret->type = type;
+	ret->next = 0;
 
-        return val->name;
+	return ret;
 }
 
-/* return 0 if no name matches at the table */
-int st_get_number(struct symbol_table *st, char *name)
+/* return the first hierarchical entry */
+struct st_entry *
+st_node_lookup_entry(
+	struct st_node *node,
+	char *name)
 {
-        int end,i;
-        struct value *val;
+	__typeof__(node) ptrn;
+	struct st_entry *ptre, *ret;
 
-        end = 0;
-        i = st->hashtable->count;
-        while ((i) && (!end))
-        {
-                hashtable_lookup(st->hashtable,my_itoa(i,10),&val);
-                if (!strcmp(val->name,name))
-                {
-                        end = i;
-                }
-                i--;
-        }
-        return end;
+	ret = 0;
+	ptrn = node;
+
+	while ((!ret) && (ptrn))
+	{
+		ptre = ptrn->entries;
+		while ((!ret) && (ptre))
+		{
+			if (!strcmp(ptre->name,name))
+				ret = ptre;
+			else
+				ptre = ptre->next;
+		}
+		ptrn = ptrn->parent;
+	}
+
+	return ret;
 }
-
-int st_set_declared(struct symbol_table *st, int key)
-{
-        struct value *val;
-        
-        hashtable_lookup(st->hashtable,my_itoa(key,10),&val);
-
-        val->flags = val->flags|FLAG_DECLARED;
-        return 0;
-}
-
-int st_set_used(struct symbol_table *st, int key)
-{
-        struct value *val;
-        
-        hashtable_lookup(st->hashtable,my_itoa(key,10),&val);
-        val->flags = val->flags|FLAG_USED;
-
-        return 0;
-}
-
-int st_is_declared(struct symbol_table *st, int key)
-{
-        struct value *val;
-
-        hashtable_lookup(st->hashtable,my_itoa(key,10),&val);
-
-        return (val->flags&FLAG_DECLARED);
-}
-
-int st_is_used(struct symbol_table *st, int key)
-{
-        struct value *val;
-
-        hashtable_lookup(st->hashtable,my_itoa(key,10),&val);
-
-        return val->flags&FLAG_USED;
-}
-
-
-        
-/*
-int main(void)
-{
-        struct hashtable t;
-        struct value test,test2;
-        
-        hashtable_init(&t,4);
-
-        test.flags = FLAG_DECLARED|FLAG_USED;
-        test.value = 32;
-        test.type = 55;
-        
-        printf("T type: %hd value: %d flags:%#x\n",test.type,test.value,test.flags);
-        hashtable_add(&t,"prout",&test);
-        hashtable_add(&t,"proute",&test);
-        hashtable_add(&t,"proutee",&test);
-        
-        if (hashtable_lookup(&t,"prout",&test2))
-                printf("FOUND type: %hd value: %d flags:%#x\n",test2.type,test2.value,test2.flags);
-        else
-                printf("NOT FOUND\n");  
-
-        hashtable_delete(&t);
-        
-        if (hashtable_lookup(&t,"prout",&test2))
-                printf("FOUND type: %hd value: %d flags:%#x\n",test2.type,test2.value,test2.flags);
-        else
-                printf("NOT FOUND\n");  
-
-        return 0;
-}
-*/
-/*
-int main(void)
-{
-        struct symbol_table st;
-        symbol_table_init(&st);
-        symbol_table_add(&st,"prout",12);
-        symbol_table_add(&st,"prout2",6);
-        int i = symbol_table_add(&st,"prout3",4);
-        symbol_table_add(&st,"prout4",2);
-        symbol_table_add(&st,"prout5",2);
-        printf("NAME:%s\n",st_get_name(&st,i));
-        printf("NUMBER:%d:%d:\n",st_get_number(&st,"proute"),i);
-        
-        printf("USED : %d\n",st_is_used(&st,st_get_number(&st,"prout2")));
-        st_set_used(&st,st_get_number(&st,"prout2"));
-        printf("USED : %d\n",st_is_used(&st,st_get_number(&st,"prout2")));
-        symbol_table_delete(&st);
-        return 0;
-}
-*/

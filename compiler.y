@@ -2,8 +2,13 @@
 	#include <stdio.h>
 	#include <string.h>
 	#include "abstract_tree.h"
+	#include "symbols_table.h"
 	#include "debug.h"
 	#include "generator.h"
+	
+	struct st_node *curblock;
+	struct st_node *newblock;
+
 	int yylex(void);
 	void yyerror(char *msg);
 %}
@@ -113,7 +118,10 @@ program 	: exp
 			if ($1)
 			{
 				printf("abstract tree: ");
-				print_exp($1);
+				print_at_exp($1);
+				printf("\n\n");
+				printf("symbols table: ");
+				print_st_node(newblock);
 				printf("\n\n");
 				printf("---generating code---\n");
 				generate($1);
@@ -347,6 +355,10 @@ exp		: LP expitersemic RP
 			e = (__typeof__(e)) malloc(sizeof(e));
 			e->decs = $2;
 			
+			if (curblock->parent)
+				curblock = curblock->parent;
+			
+
 			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_LET,e,
 				let);
 		}
@@ -446,25 +458,38 @@ decs		: dec decs
 			s->dec = $1;
 			s->next = $2;
 			$$ = s;
+			printf("\nPROUT\n");
 		}
 		|
 		{
+			curblock = newblock;
+			printf("LOL\n");
+			print_st_node(curblock);
+			printf("\nLOL\n");
+			newblock = st_node_init(curblock);
+
 			$$ = 0;
 		}
 		;
 dec		: vardec
 		{
+			st_node_add_entry(newblock,
+				st_entry_init(($1)->idname,ST_ENUM_TYPE_VAR));
 			$$ = AT_DEFINE_CHOICE(struct at_dec *,
 				AT_ENUM_DEC_VARDEC, $1, vardec);
 		}
 		| fundec
 		{
+			st_node_add_entry(newblock,
+				st_entry_init(($1)->idname,ST_ENUM_TYPE_FUNC));
 			$$ = AT_DEFINE_CHOICE(struct at_dec *,
 				AT_ENUM_DEC_FUNDEC, $1, fundec);
 			/* print_fundec(($$)->u.fundec); */
 		} 
 		| tabdec
 		{
+			st_node_add_entry(newblock,
+				st_entry_init(($1)->idname,ST_ENUM_TYPE_TAB));
 			$$ = AT_DEFINE_CHOICE(struct at_dec *,
 				AT_ENUM_DEC_TABDEC, $1, tabdec);
 		}
@@ -497,6 +522,10 @@ fundec		: FUNCTION ID LP tyfields RP EQUALS exp
 			f->tyfields = $4;
 			f->exp = $7;
 			$$ = f;
+/*
+			if (curblock->parent)
+				curblock = curblock->parent;
+*/
 		}
 		| FUNCTION ID LP tyfields RP COLON typeid EQUALS exp
 		{
@@ -507,6 +536,10 @@ fundec		: FUNCTION ID LP tyfields RP EQUALS exp
 			f->tyfields = $4;
 			f->exp = $9;
 			$$ = f;
+/*
+			if (curblock->parent)
+				curblock = curblock->parent;
+*/
 		} 
 		;
 tabdec		: VAR ID COLON typeid LSB ID RSB
@@ -531,10 +564,18 @@ tabdec		: VAR ID COLON typeid LSB ID RSB
 		;
 tyfields	: tyfieldsiter
 		{
+/*
+			curblock = newblock;
+			newblock = st_node_init(curblock);
+*/
 			$$ = $1;
 		} 
 		|
 		{
+/*
+			curblock = newblock;
+			newblock = st_node_init(curblock);
+*/
 			$$ = 0;
 		}
 		;
@@ -545,7 +586,12 @@ tyfieldsiter	: ID COLON typeid tyfieldsiterP
 			t->idname = $1;
 			t->idtype = $3;
 			t->next = $4;
+/*
+			st_node_add_entry(newblock,
+				st_entry_init(t->idname,ST_ENUM_TYPE_VAR));
+*/
 			$$ = t;
+
 		}
 		;
 tyfieldsiterP	: COMMA ID COLON typeid tyfieldsiterP
@@ -555,7 +601,10 @@ tyfieldsiterP	: COMMA ID COLON typeid tyfieldsiterP
 			t->idname = $2;
 			t->idtype = $4;
 			t->next = $5;
-			printf("A: %x\n",t);
+/*
+			st_node_add_entry(newblock,
+				st_entry_init(t->idname,ST_ENUM_TYPE_VAR));
+*/
 			$$ = t;
 		}
 		|
@@ -580,6 +629,9 @@ int
 main(void)
 {
 	yylval.line = 1;
+	newblock = st_node_init(0);
+	curblock = 0;
 	yyparse();
+	/* st_node_free(newblock); */
 	return 0;
 }

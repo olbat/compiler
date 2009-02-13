@@ -1,25 +1,34 @@
 #ifndef _SYMBOLS_TABLE_H
 #define _SYMBOLS_TABLE_H
 
-#define SYMBOL_TABLE_SIZE 8
-
-#include "tools/hashtable.h"
-
-
-struct symbol_table
+enum st_enum_type
 {
-        struct hashtable *hashtable;
+	ST_ENUM_TYPE_VAR,
+	ST_ENUM_TYPE_FUNC,
+	ST_ENUM_TYPE_TAB
 };
 
-struct symbol_table *symbol_table_init(struct symbol_table *st);
-struct symbol_table *symbol_table_delete(struct symbol_table *st);
-int symbol_table_add(struct symbol_table *st, char *name, __u16 value);
-char *st_get_name(struct symbol_table *st, int key);
-int st_get_next_key(struct symbol_table *st);
-int st_get_number(struct symbol_table *st, char *name);
-int st_set_declared(struct symbol_table *st, int key);
-int st_set_used(struct symbol_table *st, int key);
-int st_is_declared(struct symbol_table *st, int key);
-int st_is_used(struct symbol_table *st, int key);
+struct st_entry
+{
+	char *name;
+	enum st_enum_type type;
+	struct st_entry *next;
+};
+
+struct st_node
+{
+	struct st_entry *entries;
+	int num;
+	struct st_node *parent;
+	struct st_node *childs;
+};
+
+
+struct st_node *st_node_init(struct st_node *parent);
+void st_node_free(struct st_node *node);
+struct st_node *st_node_add_entry(struct st_node *node, struct st_entry *entry);
+void st_entries_free(struct st_entry *entry);
+struct st_entry *st_entry_init(char *name, enum st_enum_type type);
+struct st_entry *st_node_lookup_entry(struct st_node *node, char *name);
 
 #endif

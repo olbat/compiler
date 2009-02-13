@@ -1,9 +1,10 @@
 #include "debug.h"
 #include "abstract_tree.h"
+#include "symbols_table.h"
 
 #include <stdio.h>
 
-void print_exp(struct at_exp *exp)
+void print_at_exp(struct at_exp *exp)
 {
 	printf("exp(");
 	if (!exp)
@@ -11,7 +12,7 @@ void print_exp(struct at_exp *exp)
 	switch (exp->e)
 	{
 	case AT_ENUM_EXP_LET:
-		print_let(exp->u.let);
+		print_at_let(exp->u.let);
 		break;
 	default:
 		break;
@@ -19,29 +20,29 @@ void print_exp(struct at_exp *exp)
 	printf(")");
 }
 
-void print_let(struct at_let *let)
+void print_at_let(struct at_let *let)
 {
 	printf("let(");
 	if (!let)
 		return;
-	print_decs(let->decs);
+	print_at_decs(let->decs);
 	printf(")");	
 }
 
-void print_decs(struct at_decs *decs)
+void print_at_decs(struct at_decs *decs)
 {
 	printf("decs(");
 	if (!decs)
 		return;
 	while (decs)
 	{
-		print_dec(decs->dec);
+		print_at_dec(decs->dec);
 		decs = decs->next;
 	}
 	printf(")");	
 }
 
-void print_dec(struct at_dec *dec)
+void print_at_dec(struct at_dec *dec)
 {
 	printf("dec(");
 	if (!dec)
@@ -49,10 +50,10 @@ void print_dec(struct at_dec *dec)
 	switch(dec->e)
 	{
 	case AT_ENUM_DEC_VARDEC:
-		print_vardec(dec->u.vardec);
+		print_at_vardec(dec->u.vardec);
 		break;
 	case AT_ENUM_DEC_FUNDEC:
-		print_fundec(dec->u.fundec);
+		print_at_fundec(dec->u.fundec);
 		break;
 	default:
 		break;
@@ -60,7 +61,7 @@ void print_dec(struct at_dec *dec)
 	printf(")");	
 }
 
-void print_vardec(struct at_vardec *vardec)
+void print_at_vardec(struct at_vardec *vardec)
 {
 	printf("vardec(");
 	if (!vardec)
@@ -69,16 +70,16 @@ void print_vardec(struct at_vardec *vardec)
 	switch(vardec->e)
 	{
 	case AT_ENUM_VARDEC_TYPE:
-		print_typeid(vardec->u.idtype);
+		print_at_typeid(vardec->u.idtype);
 		break;
 	default:
 		break;
 	}
 	printf(")");	
-	print_exp(vardec->exp);
+	print_at_exp(vardec->exp);
 }
 
-void print_fundec(struct at_fundec *fundec)
+void print_at_fundec(struct at_fundec *fundec)
 {
 	printf("fundec(");
 	if (!fundec)
@@ -89,19 +90,19 @@ void print_fundec(struct at_fundec *fundec)
 	switch(fundec->e)
 	{
 	case AT_ENUM_FUNDEC_FUNC:
-		print_typeid(fundec->u.idtype);
+		print_at_typeid(fundec->u.idtype);
 		break;
 	default:
 		break;
 	}
 
-	print_tyfields(fundec->tyfields);
-	print_exp(fundec->exp);
+	print_at_tyfields(fundec->tyfields);
+	print_at_exp(fundec->exp);
 
 	printf(")");	
 }
 
-void print_tyfields(struct at_tyfields *tyfields)
+void print_at_tyfields(struct at_tyfields *tyfields)
 {
 	printf("tyfields(");
 	if (!tyfields)
@@ -111,7 +112,7 @@ void print_tyfields(struct at_tyfields *tyfields)
 	{
 		printf("idname:%s ",(tyfields->idname ? tyfields->idname 
 			: "{none}"));
-		print_typeid(tyfields->idtype);
+		print_at_typeid(tyfields->idtype);
 		printf(",");
 		tyfields = tyfields->next;
 	}
@@ -120,7 +121,7 @@ void print_tyfields(struct at_tyfields *tyfields)
 	printf(")");	
 }
 
-void print_typeid(enum at_enum_typeid idtype)
+void print_at_typeid(enum at_enum_typeid idtype)
 {
 	printf("idtype(");
 	switch(idtype)
@@ -139,3 +140,50 @@ void print_typeid(enum at_enum_typeid idtype)
 	}
 	printf(")");	
 }
+
+void print_st_node(struct st_node *node)
+{
+	__typeof__(node->childs) ptr;
+
+	if (!node)
+		return;
+	
+	printf("Block[%d] ",node->num);
+	print_st_entries(node->entries);
+	printf("(");
+
+	ptr = node->childs;
+	while (ptr)
+	{
+		print_st_node(ptr);
+		ptr = ptr->childs;
+	}
+	printf(")");
+}
+
+void print_st_entries(struct st_entry *entry)
+{
+	if (!entry)
+		return;
+
+	printf("name:%s [",entry->name);
+	switch (entry->type)
+	{
+	case ST_ENUM_TYPE_VAR:
+		printf("VAR");
+		break;
+	case ST_ENUM_TYPE_FUNC:
+		printf("FUNC");
+		break;
+	case ST_ENUM_TYPE_TAB:
+		printf("TAB");
+		break;
+	default:
+		break;
+	}
+	printf("], ");
+	
+	if (entry->next)
+		print_st_entries(entry->next);
+}
+
