@@ -21,6 +21,7 @@ struct st_node
 	int num;
 	struct st_node *parent;
 	struct st_node *childs;
+	struct st_node *siblings;
 };
 
 

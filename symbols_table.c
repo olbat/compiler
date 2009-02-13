@@ -12,15 +12,16 @@ st_node_init(struct st_node *parent)
 	ret = (__typeof__(ret)) malloc(sizeof(ret));
 	ret->num = global_num++;
 	ret->parent = parent;
+	ret->siblings = 0;
 	
 	if (parent)
 	{
 		if (parent->childs)
 		{
 			ptr = parent->childs;
-			while(ptr->childs)
-				ptr = ptr->childs;
-			ptr->childs = ret;
+			while (ptr->siblings)
+				ptr = ptr->siblings;
+			ptr->siblings = ret;
 		}
 		else
 			parent->childs = ret;
@@ -31,6 +32,46 @@ st_node_init(struct st_node *parent)
 	
 	return ret;
 }
+/*
+struct st_node *
+st_node_child_add(
+	struct st_node *node,
+	struct st_node *child)
+{
+	__typeof__(node) childs;
+	childs = node->childs;
+
+	child->parent = node;
+
+	while (childs->childs)
+	{
+		if (childs == child)
+			return;
+		childs = childs->next;
+	}
+	childs->next = child;
+}
+
+struct st_node *
+st_node_child_remove(
+	struct st_node *node,
+	struct st_node *child)
+{
+	__typeof__(node) childs, prec;
+	childs = node->childs;
+
+	child->parent = node;
+
+	while ((childs != child) && (childs->next))
+	{
+		prec = childs;
+		childs = childs->next;
+	}
+	
+	if (childs == child)
+		prec->next = childs->next;
+}
+*/
 
 void
 st_node_free(struct st_node *node)
@@ -40,13 +81,13 @@ st_node_free(struct st_node *node)
 	if (!node)
 		return;
 
-	ptr = node->childs;
-
 	st_entries_free(node->entries);
+
+	ptr = node->childs;
 
 	while (ptr)
 	{
-		ptr2 = ptr->childs;
+		ptr2 = ptr->siblings;
 		st_node_free(ptr);
 		ptr = ptr2;
 	}
@@ -65,7 +106,7 @@ st_node_add_entry(
 		ptr = node->entries;
 		while (ptr->next)
 			ptr = ptr->next;
-		ptr = entry;
+		ptr->next = entry;
 	}
 	else
 		node->entries = entry;

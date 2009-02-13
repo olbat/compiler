@@ -150,15 +150,22 @@ void print_st_node(struct st_node *node)
 	
 	printf("Block[%d] ",node->num);
 	print_st_entries(node->entries);
-	printf("(");
 
-	ptr = node->childs;
+	ptr = node->siblings;
 	while (ptr)
 	{
+		printf("|");
 		print_st_node(ptr);
-		ptr = ptr->childs;
+		ptr = ptr->siblings;
 	}
-	printf(")");
+
+	if (node->childs)
+	{
+		printf("{");
+		print_st_node(node->childs);
+		printf("}");
+	}
+
 }
 
 void print_st_entries(struct st_entry *entry)

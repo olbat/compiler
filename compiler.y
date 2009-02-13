@@ -3,11 +3,11 @@
 	#include <string.h>
 	#include "abstract_tree.h"
 	#include "symbols_table.h"
+	#include "errors.h"
 	#include "debug.h"
 	#include "generator.h"
 	
-	struct st_node *curblock;
-	struct st_node *newblock;
+	struct st_node *curblock, *initblock;
 
 	int yylex(void);
 	void yyerror(char *msg);
@@ -77,13 +77,14 @@
 %type <r_expitersemic> expitersemic expitersemicP
 %type <r_expitercomma> expitercomma expitercommaP expitercomma1
 %type <r_dec> dec 
-%type <r_decs> decs
+%type <r_decs> decs decsdecs
 %type <r_lvalue> lvalue
 %type <r_vardec> vardec
 %type <r_tyfields> tyfields tyfieldsiter tyfieldsiterP
 %type <r_fundec> fundec
 %type <r_tabdec> tabdec
 %type <r_typeid> typeid
+%type <string> idfunc
 
 /*
 intval stringval neg plus minus multiply divide equals ge le different gt lt and or lvalue lvalueaffect if ifelse while for let
@@ -121,7 +122,7 @@ program 	: exp
 				print_at_exp($1);
 				printf("\n\n");
 				printf("symbols table: ");
-				print_st_node(newblock);
+				print_st_node(initblock);
 				printf("\n\n");
 				printf("---generating code---\n");
 				generate($1);
@@ -297,6 +298,8 @@ exp		: LP expitersemic RP
 		{
 			$$ = AT_DEFINE_CHOICE(struct at_exp *,
 				AT_ENUM_EXP_LVALUE, $1, lvalue);
+			if (!st_node_lookup_entry(curblock,$1->idname))
+				err_msg(ERR_ENUM_ERROR_UNDECLARED,yylval.line,$1->idname);
 		}
 		| lvalue AFFECT exp
 		{
@@ -307,6 +310,8 @@ exp		: LP expitersemic RP
 			
 			$$ = AT_DEFINE_CHOICE(struct at_exp *,
 				AT_ENUM_EXP_AFFECT, e, affect);
+			if (!st_node_lookup_entry(curblock,$1->idname))
+				err_msg(ERR_ENUM_ERROR_UNDECLARED,yylval.line,$1->idname);
 		}
 		| IF exp THEN exp 
 		{
@@ -343,21 +348,29 @@ exp		: LP expitersemic RP
 		{
 			struct at_for *e;
 			e = (__typeof__(e)) malloc(sizeof(e));
+			e->idname = $2;
 			e->init = $4;
 			e->end = $6;
 			e->exp = $8;
 			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_FOR,
 				e, ford);
+			if (!st_node_lookup_entry(curblock,$2))
+				err_msg(ERR_ENUM_ERROR_UNDECLARED,yylval.line,$2);
 		}
-		| LET decs IN expitersemic END 
+		| LET decsdecs IN expitersemic END 
 		{
 			struct at_let *e;
 			e = (__typeof__(e)) malloc(sizeof(e));
 			e->decs = $2;
-			
+/*
 			if (curblock->parent)
-				curblock = curblock->parent;
-			
+				curblock->parent = curblock->parent->parent;
+*/			
+			__typeof__(curblock) tmp;
+			tmp = curblock->parent;
+                        if (curblock->parent)
+                                curblock->parent = curblock->parent->parent;
+			curblock = tmp;
 
 			$$ = AT_DEFINE_CHOICE(struct at_exp *,AT_ENUM_EXP_LET,e,
 				let);
@@ -371,6 +384,9 @@ exp		: LP expitersemic RP
 			
 			$$ = AT_DEFINE_CHOICE(struct at_exp *,
 				AT_ENUM_EXP_EXPITERID, e, expiterid);
+
+			if (!st_node_lookup_entry(curblock,$1))
+				err_msg(ERR_ENUM_ERROR_UNDECLARED,yylval.line,$1);
 		}
 		;
 expitersemic	: exp expitersemicP
@@ -451,6 +467,11 @@ lvalue		: ID
 			$$ = l;
 		}
 		;
+decsdecs	: decs
+		{
+			curblock = st_node_init(curblock);
+			$$ = $1;
+		}
 decs		: dec decs
 		{
 			struct at_decs *s;
@@ -458,37 +479,28 @@ decs		: dec decs
 			s->dec = $1;
 			s->next = $2;
 			$$ = s;
-			printf("\nPROUT\n");
 		}
 		|
 		{
-			curblock = newblock;
-			printf("LOL\n");
-			print_st_node(curblock);
-			printf("\nLOL\n");
-			newblock = st_node_init(curblock);
-
 			$$ = 0;
 		}
 		;
 dec		: vardec
 		{
-			st_node_add_entry(newblock,
+			st_node_add_entry(curblock,
 				st_entry_init(($1)->idname,ST_ENUM_TYPE_VAR));
 			$$ = AT_DEFINE_CHOICE(struct at_dec *,
 				AT_ENUM_DEC_VARDEC, $1, vardec);
 		}
 		| fundec
 		{
-			st_node_add_entry(newblock,
-				st_entry_init(($1)->idname,ST_ENUM_TYPE_FUNC));
 			$$ = AT_DEFINE_CHOICE(struct at_dec *,
 				AT_ENUM_DEC_FUNDEC, $1, fundec);
 			/* print_fundec(($$)->u.fundec); */
 		} 
 		| tabdec
 		{
-			st_node_add_entry(newblock,
+			st_node_add_entry(curblock,
 				st_entry_init(($1)->idname,ST_ENUM_TYPE_TAB));
 			$$ = AT_DEFINE_CHOICE(struct at_dec *,
 				AT_ENUM_DEC_TABDEC, $1, tabdec);
@@ -513,7 +525,18 @@ vardec		: VAR ID AFFECT exp
 			$$ = v;
 		}
 		;
-fundec		: FUNCTION ID LP tyfields RP EQUALS exp
+/* 
+ * Used for recursive declared functions
+ * Without this, there is an undeclared function error
+ */
+idfunc		: ID
+		{
+			$$ = $1;
+
+			st_node_add_entry(curblock,
+				st_entry_init($$,ST_ENUM_TYPE_FUNC));
+		}
+fundec		: FUNCTION idfunc LP tyfields RP EQUALS exp
 		{
 			struct at_fundec *f;
 			f = (__typeof__(f)) malloc(sizeof(f));	
@@ -522,12 +545,14 @@ fundec		: FUNCTION ID LP tyfields RP EQUALS exp
 			f->tyfields = $4;
 			f->exp = $7;
 			$$ = f;
-/*
-			if (curblock->parent)
-				curblock = curblock->parent;
-*/
+
+			__typeof__(curblock) tmp;
+			tmp = curblock->parent;
+                        if (curblock->parent)
+                                curblock->parent = curblock->parent->parent;
+			curblock = tmp;
 		}
-		| FUNCTION ID LP tyfields RP COLON typeid EQUALS exp
+		| FUNCTION idfunc LP tyfields RP COLON typeid EQUALS exp
 		{
 			struct at_fundec *f;
 			f = AT_DEFINE_CHOICE(__typeof__(f),AT_ENUM_FUNDEC_FUNC,
@@ -536,10 +561,12 @@ fundec		: FUNCTION ID LP tyfields RP EQUALS exp
 			f->tyfields = $4;
 			f->exp = $9;
 			$$ = f;
-/*
-			if (curblock->parent)
-				curblock = curblock->parent;
-*/
+
+			__typeof__(curblock) tmp;
+			tmp = curblock->parent;
+                        if (curblock->parent)
+                                curblock->parent = curblock->parent->parent;
+			curblock = tmp;
 		} 
 		;
 tabdec		: VAR ID COLON typeid LSB ID RSB
@@ -564,18 +591,10 @@ tabdec		: VAR ID COLON typeid LSB ID RSB
 		;
 tyfields	: tyfieldsiter
 		{
-/*
-			curblock = newblock;
-			newblock = st_node_init(curblock);
-*/
 			$$ = $1;
 		} 
 		|
 		{
-/*
-			curblock = newblock;
-			newblock = st_node_init(curblock);
-*/
 			$$ = 0;
 		}
 		;
@@ -586,12 +605,11 @@ tyfieldsiter	: ID COLON typeid tyfieldsiterP
 			t->idname = $1;
 			t->idtype = $3;
 			t->next = $4;
-/*
-			st_node_add_entry(newblock,
-				st_entry_init(t->idname,ST_ENUM_TYPE_VAR));
-*/
-			$$ = t;
 
+			st_node_add_entry(curblock,
+				st_entry_init(t->idname,ST_ENUM_TYPE_VAR));
+
+			$$ = t;
 		}
 		;
 tyfieldsiterP	: COMMA ID COLON typeid tyfieldsiterP
@@ -601,14 +619,15 @@ tyfieldsiterP	: COMMA ID COLON typeid tyfieldsiterP
 			t->idname = $2;
 			t->idtype = $4;
 			t->next = $5;
-/*
-			st_node_add_entry(newblock,
+
+			st_node_add_entry(curblock,
 				st_entry_init(t->idname,ST_ENUM_TYPE_VAR));
-*/
+
 			$$ = t;
 		}
 		|
 		{
+			curblock = st_node_init(curblock);
 			$$ = 0;
 		}
 		;
@@ -622,16 +641,21 @@ typeid		: INT { $$ = AT_TID_INT; }
 void
 yyerror(char *msg)
 {
-	fprintf(stderr,"%d: error: %s\n",yylval,msg);
+	fprintf(stderr,"%d: error: %s\n",yylval.line,msg);
 }
 
 int
 main(void)
 {
 	yylval.line = 1;
-	newblock = st_node_init(0);
-	curblock = 0;
+	curblock = st_node_init(0);
+	initblock = curblock;
+
+	st_node_add_entry(curblock, st_entry_init("printi",ST_ENUM_TYPE_FUNC));
+	st_node_add_entry(curblock, st_entry_init("printr",ST_ENUM_TYPE_FUNC));
+	st_node_add_entry(curblock, st_entry_init("prints",ST_ENUM_TYPE_FUNC));
+
 	yyparse();
-	/* st_node_free(newblock); */
+	/* st_node_free(curblock); */
 	return 0;
 }
